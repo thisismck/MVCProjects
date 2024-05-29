@@ -1,45 +1,38 @@
-﻿@using LocalizationFromDB.Controllers
-@using Microsoft.Extensions.Localization
-@inject IStringLocalizer<LocalizationResourcesController> Localizer
-@model LocalizationFromDB.Data.LocalizationResource
+﻿@model LocalizationFromDB.ViewModels.LocalizationResourceViewModel
+
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Localization Resource";
     var cultures = ViewBag.Cultures as List<string>;
 }
 
-<h1>@Localizer["createNew"]</h1>
+<h1>Create Localization Resource</h1>
 
-<h4>LocalizationResource</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div class="form-group">
-                <label asp-for="ResourceKey" class="control-label"></label>
-                <input asp-for="ResourceKey" class="form-control" />
-                <span asp-validation-for="ResourceKey" class="text-danger"></span>
-            </div>
-
-            @foreach (var culture in cultures)
-            {
-                <div class="form-group">
-                    <label for="LocalizedValues_@culture" class="control-label">@culture</label>
-                    <input id="LocalizedValues_@culture" name="LocalizedValues[@culture]" class="form-control" />
-                </div>
-            }
-
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
-
+<form asp-action="Create">
+    <div class="form-group">
+        <label asp-for="ResourceKey" class="control-label"></label>
+        <input asp-for="ResourceKey" class="form-control" />
+        <span asp-validation-for="ResourceKey" class="text-danger"></span>
     </div>
-</div>
+
+    @foreach (var culture in cultures)
+    {
+        <div class="form-group">
+            <label for="LocalizedValues_@culture" class="control-label">@culture</label>
+            <input id="LocalizedValues_@culture" name="LocalizedValues[@culture]" class="form-control" />
+        </div>
+    }
+
+    <div class="form-group">
+        <input type="submit" value="Create" class="btn btn-primary" />
+    </div>
+</form>
 
 <div>
     <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
