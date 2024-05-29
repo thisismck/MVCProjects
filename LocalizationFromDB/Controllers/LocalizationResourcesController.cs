@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using LocalizationFromDB.Data;
 using Microsoft.Extensions.Localization;
+using LocalizationFromDB.ViewModels;
 
 namespace LocalizationFromDB.Controllers
 {
@@ -24,7 +25,31 @@ namespace LocalizationFromDB.Controllers
         // GET: LocalizationResources
         public async Task<IActionResult> Index()
         {
-            return View(await _context.LocalizationResources.ToListAsync());
+            var resources = await _context.LocalizationResources.GroupBy(a => a.ResourceKey).ToListAsync();
+            var cultures = await _context.LocalizationCultures.Select(c => c.CultureCode).ToListAsync();
+            var viewModel = new List<ViewModels.LocalizationResourceViewModel>();
+            foreach(var resource in resources)
+            {
+                var resourceViewModel = new ViewModels.LocalizationResourceViewModel
+                {
+                    ResourceKey = resource.Key
+                };
+                foreach(var culture in cultures)
+                {
+                    var localizedValue = resource.FirstOrDefault(r => r.Culture == culture);
+                    if(localizedValue != null)
+                    {
+                        resourceViewModel.LocalizedValues.Add(culture, localizedValue.Value);
+                    }
+                    else
+                    {
+                        resourceViewModel.LocalizedValues.Add(culture, "NOT TRANSLATED");
+                    }
+                }
+                viewModel.Add(resourceViewModel);
+            }
+            ViewBag.Cultures = cultures;
+            return View(viewModel);
         }
 
         // GET: LocalizationResources/Details/5
@@ -46,10 +71,20 @@ namespace LocalizationFromDB.Controllers
         }
 
         // GET: LocalizationResources/Create
-        public IActionResult Create()
+        public async Task<IActionResult> CreateAsync()
         {
-            ViewBag.CultureList = new SelectList(_context.LocalizationCultures.ToList(), "CultureCode", "DisplayName");
-            return View();
+            var cultures = await _context.LocalizationCultures
+             .Select(c => c.CultureCode)
+             .ToListAsync();
+
+            var viewModel = new LocalizationResourceViewModel();
+            foreach (var culture in cultures)
+            {
+                viewModel.LocalizedValues[culture] = string.Empty;
+            }
+
+            ViewBag.Cultures = cultures;
+            return View(viewModel);
         }
 
         // POST: LocalizationResources/Create
@@ -57,70 +92,111 @@ namespace LocalizationFromDB.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,ResourceKey,Value,Culture")] LocalizationResource localizationResource)
+        public async Task<IActionResult> Create(LocalizationResourceViewModel viewModel)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(localizationResource);
+                foreach (var localizedValue in viewModel.LocalizedValues)
+                {
+                    var resource = new LocalizationResource
+                    {
+                        ResourceKey = viewModel.ResourceKey,
+                        Culture = localizedValue.Key,
+                        Value = localizedValue.Value
+                    };
+                    _context.LocalizationResources.Add(resource);
+                }
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(localizationResource);
+
+            ViewBag.Cultures = await _context.LocalizationCultures
+                .Select(c => c.CultureCode)
+                .ToListAsync();
+
+            return View(viewModel);
         }
 
         // GET: LocalizationResources/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(string id)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            var localizationResource = await _context.LocalizationResources.FindAsync(id);
-            if (localizationResource == null)
+            var resources = await _context.LocalizationResources
+                .Where(r => r.ResourceKey == id)
+                .ToListAsync();
+
+            if (!resources.Any())
             {
                 return NotFound();
             }
 
-            ViewBag.CultureList = new SelectList(_context.LocalizationCultures.ToList(), "CultureCode", "DisplayName");
-            return View(localizationResource);
+            var cultures = await _context.LocalizationCultures
+                .Select(c => c.CultureCode)
+                .ToListAsync();
+
+            var viewModel = new LocalizationResourceViewModel
+            {
+                ResourceKey = id
+            };
+
+            foreach (var culture in cultures)
+            {
+                var localizedValue = resources.FirstOrDefault(r => r.Culture == culture)?.Value;
+                viewModel.LocalizedValues[culture] = localizedValue ?? string.Empty;
+            }
+
+            ViewBag.Cultures = cultures;
+            return View(viewModel);
         }
 
         // POST: LocalizationResources/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ResourceKey,Value,Culture")] LocalizationResource localizationResource)
+        public async Task<IActionResult> Edit(string id, LocalizationResourceViewModel viewModel)
         {
-            if (id != localizationResource.Id)
+            if (id != viewModel.ResourceKey)
             {
                 return NotFound();
             }
 
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(localizationResource);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!LocalizationResourceExists(localizationResource.Id))
+                var existingResources = await _context.LocalizationResources
+                    .Where(r => r.ResourceKey == id)
+                    .ToListAsync();
+
+                // Delete existing resources
+                _context.LocalizationResources.RemoveRange(existingResources);
+
+                // Add updated resources
+                foreach (var localizedValue in viewModel.LocalizedValues)
+                {   if (localizedValue.Value != null && localizedValue.Value != string.Empty)
                     {
-                        return NotFound();
-                    }
-                    else
+                    var resource = new LocalizationResource
                     {
-                        throw;
+                        ResourceKey = viewModel.ResourceKey,
+                        Culture = localizedValue.Key,
+                        Value = localizedValue.Value
+                    };
+                    _context.LocalizationResources.Add(resource);
                     }
                 }
+
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(localizationResource);
-        }
 
+            ViewBag.Cultures = await _context.LocalizationCultures
+                .Select(c => c.CultureCode)
+                .ToListAsync();
+
+            return View(viewModel);
+        }
         // GET: LocalizationResources/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {

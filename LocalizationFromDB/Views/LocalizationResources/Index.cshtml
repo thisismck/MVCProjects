@@ -1,7 +1,8 @@
-﻿@model IEnumerable<LocalizationFromDB.Data.LocalizationResource>
+﻿@model IEnumerable<LocalizationFromDB.ViewModels.LocalizationResourceViewModel>
 
 @{
     ViewData["Title"] = "Index";
+    var cultures = ViewBag.Cultures as List<string>;
 }
 
 <h1>Index</h1>
@@ -15,33 +16,33 @@
             <th>
                 @Html.DisplayNameFor(model => model.ResourceKey)
             </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Value)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Culture)
-            </th>
+            @foreach (var culture in cultures)
+            {
+                <th>@culture</th>
+            }
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.ResourceKey)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Value)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Culture)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var resource in Model) {
+            <tr>
+                <td>
+                    @resource.ResourceKey
+                </td>
+                    @foreach (var culture in cultures)
+                    {
+                        <td>
+                        @resource.LocalizedValues[culture]
+                    </td>
+                }
+                    
+                <td>
+                    <a asp-action="Edit" asp-route-id="@resource.ResourceKey">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@resource.ResourceKey">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@resource.ResourceKey">Delete</a>
+                </td>
+
+            </tr>
+        }
     </tbody>
 </table>

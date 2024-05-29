@@ -1,44 +1,38 @@
-﻿@model LocalizationFromDB.Data.LocalizationResource
+﻿@model LocalizationFromDB.ViewModels.LocalizationResourceViewModel
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Localization Resource";
+    var cultures = ViewBag.Cultures as List<string>;
 }
 
-<h1>Edit</h1>
+<h1>Edit Localization Resource</h1>
 
-<h4>LocalizationResource</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="ResourceKey" class="control-label"></label>
-                <input asp-for="ResourceKey" class="form-control" />
-                <span asp-validation-for="ResourceKey" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Value" class="control-label"></label>
-                <input asp-for="Value" class="form-control" />
-                <span asp-validation-for="Value" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Culture" class="control-label"></label>
-                <select asp-for="Culture" class="form-control" asp-items="ViewBag.CultureList"></select>
-                <span asp-validation-for="Culture" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="Edit">
+    <div class="form-group">
+        <label asp-for="ResourceKey" class="control-label"></label>
+        <input asp-for="ResourceKey" class="form-control" readonly />
+        <span asp-validation-for="ResourceKey" class="text-danger"></span>
     </div>
-</div>
+
+    @foreach (var culture in cultures)
+    {
+        <div class="form-group">
+            <label for="LocalizedValues_@culture" class="control-label">@culture</label>
+            <input id="LocalizedValues_@culture" name="LocalizedValues[@culture]" class="form-control" value="@Model.LocalizedValues[culture]" />
+        </div>
+    }
+
+    <div class="form-group">
+        <input type="submit" value="Save" class="btn btn-primary" />
+    </div>
+</form>
 
 <div>
     <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
